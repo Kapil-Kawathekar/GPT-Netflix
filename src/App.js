@@ -1,9 +1,7 @@
+import Body from "./components/Body";
+
 function App() {
-  return (
-    <div className="App">
-      <h1 className="text-3l font-bold underline">Namaste GPT</h1>
-    </div>
-  );
+  return <Body />;
 }
 
 export default App;
