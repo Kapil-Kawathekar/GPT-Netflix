@@ -1,18 +1,40 @@
-import React from "react";
-import { LOGO_URL } from "../utils/constants";
+import React, { useEffect } from "react";
+import { LOGO_URL, PROFILE_LOGO } from "../utils/constants";
 
-import { signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../utils/firebase";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { addUser, removeUser } from "../utils/userSlice";
 const Header = () => {
   const navigate = useNavigate();
   const user = useSelector((store) => store.user);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const { uid, email, displayName, photoURL } = user;
+        dispatch(
+          addUser({
+            uid: uid,
+            email: email,
+            displayName: displayName,
+            photoURL: photoURL,
+          })
+        );
+        navigate("/browse");
+      } else {
+        dispatch(removeUser());
+        navigate("/");
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const handleSignOut = () => {
     signOut(auth)
-      .then(() => {
-        navigate("/");
-      })
+      .then(() => {})
       .catch((error) => {
         navigate("/error");
       });
@@ -24,11 +46,7 @@ const Header = () => {
 
       {user && (
         <div className="flex">
-          <img
-            className="w-12 h-12 mt-3"
-            alt="userIcon"
-            src="https://wallpapers.com/images/hd/netflix-profile-pictures-1000-x-1000-qo9h82134t9nv0j0.jpg"
-          />
+          <img className="w-12 h-12 mt-3" alt="userIcon" src={PROFILE_LOGO} />
 
           <button onClick={handleSignOut} className="font-bold text-white">
             {user && <p>{user.displayName}</p>}
