@@ -5,15 +5,21 @@ import { CheckValidData } from "../utils/validate";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  updateProfile,
 } from "firebase/auth";
 import { auth } from "../utils/firebase";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { addUser } from "../utils/userSlice";
 
 const Login = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [isSignInForm, setIsSignInForm] = useState(true);
+  const name = useRef(null);
   const email = useRef(null);
   const password = useRef(null);
   const [errorMessage, setErrorMessage] = useState(null);
-  console.log("Error Message : ", errorMessage);
   const handleClickSubmit = () => {
     const message = CheckValidData(email.current.value, password.current.value);
     setErrorMessage(message);
@@ -30,14 +36,32 @@ const Login = () => {
         .then((userCredential) => {
           // Signed up
           const user = userCredential.user;
-          console.log("Signed uP User : ", user);
+          updateProfile(user, {
+            displayName: name.current.value,
+            photoURL: "https://example.com/jane-q-user/profile.jpg",
+          })
+            .then(() => {
+              const { uid, email, displayName, photoURL } = auth.currentUser;
+              dispatch(
+                addUser({
+                  uid: uid,
+                  email: email,
+                  displayName: displayName,
+                  photoURL: photoURL,
+                })
+              );
+              navigate("/browse");
+            })
+            .catch((error) => {
+              setErrorMessage(error.message);
+              // ...
+            });
           setErrorMessage(null);
           setIsSignInForm(!isSignInForm);
+          navigate("/browse");
         })
         .catch((error) => {
           const errorCode = error.code;
-          const errorMessage = error.message;
-          console.log(errorCode);
           if (errorCode == "auth/email-already-in-use") {
             setErrorMessage("Email already in use");
           }
@@ -52,16 +76,13 @@ const Login = () => {
       )
         .then((userCredential) => {
           // Signed in
-          const user = userCredential.user;
-          console.log("Signed in user", user);
           setErrorMessage(null);
+          navigate("/browse");
         })
         .catch((error) => {
           const errorCode = error.code;
           const errorMessage = error.message;
-          console.log(errorCode);
           if (errorCode == "auth/invalid-credential") {
-            console.log("IN IF ");
             setErrorMessage("Invalid Credentials");
           }
         });
@@ -88,6 +109,7 @@ const Login = () => {
         </h1>
         {!isSignInForm && (
           <input
+            ref={name}
             type="text"
             placeholder="Full Name"
             className="p-2 my-4 w-full bg-slate-800 rounded-md"
